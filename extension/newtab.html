@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MarkIt - 新标签页</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%236366f1%22/><text x=%2216%22 y=%2223%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2220%22 font-weight=%22bold%22>M</text></svg>">
+<style>
+:root{--bg:#1a2236;--surface:#243049;--surface2:#3a4a6b;--text:#f1f5f9;--text2:#94a3b8;--accent:#6366f1;--accent2:#818cf8;--radius:12px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;background-size:cover;background-position:center;background-attachment:fixed}
+.header{text-align:center;padding:48px 20px 16px;position:relative}
+.header h1{font-size:2rem;font-weight:700;background:linear-gradient(135deg,var(--accent),#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{color:var(--text2);font-size:.85rem;margin-top:4px}
+.header .stats{color:var(--text2);margin-top:8px;font-size:.95rem}
+.top-left{position:absolute;top:20px;left:20px;display:flex;align-items:center;gap:8px}
+.top-bar{position:absolute;top:20px;right:20px;display:flex;align-items:center;gap:8px}
+.mode-switcher{display:flex;gap:2px;background:var(--surface);border-radius:8px;padding:4px;border:1px solid var(--surface2)}
+.mode-btn{padding:6px 12px;border-radius:6px;font-size:.85rem;border:none;background:transparent;color:var(--text2);cursor:pointer;transition:all .2s;white-space:nowrap}
+.mode-btn:hover{color:var(--accent2)}
+.mode-btn.active{background:var(--accent);color:#fff}
+.clock-display{display:flex;align-items:center;gap:6px;padding:5px 14px;background:var(--surface);border:1px solid var(--surface2);border-radius:8px;font-variant-numeric:tabular-nums}
+.clock-time{font-size:.95rem;font-weight:600;color:var(--text)}
+.clock-date{font-size:.78rem;color:var(--text2)}
+.icon-btn{width:36px;height:36px;border-radius:8px;border:1px solid var(--surface2);background:var(--surface);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:18px;line-height:1}
+.icon-btn:hover{border-color:var(--accent2);color:var(--accent2)}
+.icon-btn.syncing svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--surface2);border-radius:16px;padding:28px;width:460px;max-width:90vw;max-height:80vh;overflow-y:auto}
+.modal h2{font-size:1.15rem;font-weight:600;margin-bottom:20px;color:var(--text)}
+.modal label{display:block;font-size:.85rem;color:var(--text2);margin-bottom:6px}
+.modal input[type="text"],.modal select{width:100%;padding:10px 12px;font-size:.9rem;border:1px solid var(--surface2);border-radius:8px;background:var(--bg);color:var(--text);outline:none;transition:border-color .2s}
+.modal input[type="text"]:focus,.modal select:focus{border-color:var(--accent)}
+.modal input[type="text"]::placeholder{color:var(--text2)}
+.modal-field{margin-bottom:16px}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
+.modal-actions button{padding:8px 20px;border-radius:8px;font-size:.85rem;cursor:pointer;border:none;transition:all .2s}
+.btn-cancel{background:var(--surface2);color:var(--text2)}
+.btn-cancel:hover{color:var(--text)}
+.btn-save{background:var(--accent);color:#fff}
+.btn-save:hover{background:var(--accent2)}
+.toolbar{max-width:900px;margin:0 auto 12px;padding:0 20px;display:flex;flex-direction:column;gap:12px}
+.toolbar-row{display:flex;gap:10px;align-items:center}
+.search-box{flex:1;padding:12px 16px;font-size:1rem;border:1px solid var(--surface2);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:none;transition:border-color .2s}
+.search-box:focus{border-color:var(--accent)}
+.search-box::placeholder{color:var(--text2)}
+.sort-select{padding:10px 12px;font-size:.85rem;border-radius:var(--radius);border:1px solid var(--surface2);background:var(--surface);color:var(--text2);outline:none;cursor:pointer}
+.view-toggle{display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--surface2)}
+.view-btn{padding:8px 10px;border:none;background:var(--surface);color:var(--text2);cursor:pointer;transition:all .2s;display:flex;align-items:center}
+.view-btn.active{background:var(--accent);color:#fff}
+.tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;padding:4px 0}
+.tag{padding:5px 12px;border-radius:20px;font-size:.82rem;border:1px solid var(--surface2);background:transparent;color:var(--text2);cursor:pointer;transition:all .2s;position:relative}
+.tag:hover{border-color:var(--accent2);color:var(--accent2)}
+.tag.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.grid{max-width:900px;margin:0 auto;padding:0 20px 60px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.grid.list-view{grid-template-columns:1fr}
+.grid.list-view .card{gap:10px;padding:10px 14px}
+.grid.list-view .favicon{width:20px;height:20px}
+.grid.list-view .title{font-size:.9rem}
+.grid.list-view .domain{display:inline;margin-left:8px}
+.grid.list-view .info{display:flex;align-items:center}
+.grid.list-view .visit-count{font-size:.75rem}
+.card{display:flex;align-items:center;gap:12px;position:relative;padding:14px 16px;border-radius:var(--radius);background:var(--surface);text-decoration:none;color:var(--text);border:1px solid transparent;transition:all .2s}
+.card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 20px rgba(99,102,241,.15)}
+.card.hidden{display:none}
+.card.dup-highlight{border-color:#f59e0b}
+.favicon{width:32px;height:32px;border-radius:6px;flex-shrink:0}
+.info{overflow:hidden;flex:1}
+.title{font-size:.95rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.domain{font-size:.8rem;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.visit-count{font-size:.7rem;color:var(--text2);margin-top:2px}
+.card-actions{position:absolute;top:6px;right:6px;display:none;gap:2px}
+.card:hover .card-actions{display:flex}
+.card-action{width:24px;height:24px;border-radius:4px;border:none;background:var(--surface2);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .15s}
+.card-action:hover{background:var(--accent);color:#fff}
+.card-action.pin-action.pinned{color:#f59e0b}
+.card-action.pin-action.pinned:hover{background:#f59e0b;color:#fff}
+.card-action.readlater-action.marked{color:#6366f1}
+.card-action.readlater-action.marked:hover{background:#6366f1;color:#fff}
+.empty{grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text2);font-size:1.1rem}
+.settings-section{border-top:1px solid var(--surface2);margin-top:20px;padding-top:16px}
+.settings-section h3{font-size:.9rem;font-weight:500;color:var(--text2);margin-bottom:12px}
+.settings-row{display:flex;gap:10px}
+.settings-row button{flex:1;padding:8px 0;border-radius:8px;font-size:.85rem;cursor:pointer;border:1px solid var(--surface2);transition:all .2s;background:var(--bg);color:var(--text2)}
+.settings-row button:hover{border-color:var(--accent2);color:var(--accent2)}
+.settings-toggle{display:flex;align-items:center;justify-content:space-between;padding:8px 0;font-size:.85rem;color:var(--text2)}
+.toggle-switch{position:relative;display:inline-block;width:40px;height:22px;cursor:pointer}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--surface2);border-radius:11px;transition:.3s}
+.toggle-slider::before{content:'';position:absolute;width:16px;height:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:var(--accent)}
+.toggle-switch input:checked+.toggle-slider::before{transform:translateX(18px)}
+.sync-status{font-size:.78rem;color:var(--text2);margin-top:6px;opacity:.7}
+.footer{text-align:center;padding:20px;color:var(--text2);font-size:.8rem}
+.footer a{color:var(--accent2);text-decoration:none}
+.homepage{max-width:900px;margin:0 auto;padding:0 20px 60px;display:none}
+.homepage.active{display:block}
+.home-section{margin-bottom:28px}
+.home-section-title{font-size:.95rem;font-weight:600;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.home-section-title svg{opacity:.6}
+.home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.home-empty{color:var(--text2);font-size:.85rem;padding:16px 0;opacity:.6}
+.dup-banner{max-width:900px;margin:0 auto 12px;padding:10px 20px;background:rgba(245,158,11,.15);border:1px solid #f59e0b;border-radius:var(--radius);color:#fbbf24;font-size:.85rem;display:none;align-items:center;gap:8px}
+.dup-banner.show{display:flex}
+.dup-banner button{padding:4px 12px;border-radius:6px;border:1px solid #f59e0b;background:transparent;color:#fbbf24;cursor:pointer;font-size:.8rem}
+.dup-banner button:first-of-type{margin-left:auto}
+.dup-banner button:hover{background:#f59e0b;color:#1a2236}
+body.light{--bg:#f0f2f5;--surface:#ffffff;--surface2:#d1d5db;--text:#1f2937;--text2:#6b7280;--accent:#6366f1;--accent2:#818cf8}
+body.light .modal{background:#fff;border-color:#d1d5db}
+body.light .modal input[type="text"],body.light .modal select{background:#f0f2f5;color:#1f2937;border-color:#d1d5db}
+body.light .card{background:#fff}
+body.light .card-action{background:#e5e7eb;color:#6b7280}
+body.light .search-box,body.light .sort-select{background:#fff;color:#1f2937;border-color:#d1d5db}
+body.light .dup-banner{background:rgba(245,158,11,.1)}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.header h1{font-size:1.5rem}.header{padding-top:100px}.top-left{position:static;justify-content:center;margin:0 auto 8px;flex-wrap:wrap}.top-bar{position:static;justify-content:center;margin:0 auto 8px;flex-wrap:wrap}.clock-display{display:none}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="top-left"><div class="mode-switcher" id="modeSwitcher"></div></div>
+  <div class="top-bar">
+    <div class="clock-display" id="clockDisplay"><span class="clock-time" id="clockTime">--:--:--</span><span class="clock-date" id="clockDate"></span></div>
+    <button class="icon-btn" id="syncBtn" title="同步浏览器书签"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
+    <button class="icon-btn" id="addBtn" title="添加书签"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+    <button class="icon-btn" id="themeBtn" title="切换明暗模式"><svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+    <button class="icon-btn" id="settingsBtn" title="设置"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+  </div>
+  <h1>MarkIt</h1>
+  <div class="subtitle">书签管理器 · 浏览器扩展</div>
+  <p class="stats" id="stats">加载中...</p>
+</div>
+
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <h2>设置</h2>
+    <div class="modal-field">
+      <label for="bgInput">背景图片链接</label>
+      <input type="text" id="bgInput" placeholder="输入图片 URL，留空则使用默认背景">
+    </div>
+    <div class="settings-section">
+      <h3>书签数据</h3>
+      <div class="settings-row">
+        <button id="exportBtn">导出 JSON</button>
+        <button id="importBtn">导入 JSON</button>
+      </div>
+      <input type="file" id="importFile" accept=".json" style="display:none">
+    </div>
+    <div class="settings-section">
+      <h3>浏览器书签同步</h3>
+      <div id="syncStatus" class="sync-status"></div>
+      <div class="settings-toggle" style="margin-top:10px">
+        <span>每小时自动同步</span>
+        <label class="toggle-switch"><input type="checkbox" id="autoSyncToggle"><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="settingsCancel">取消</button>
+      <button class="btn-save" id="settingsSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="bmModal">
+  <div class="modal">
+    <h2 id="bmModalTitle">添加书签</h2>
+    <div class="modal-field"><label for="bmTitleInput">标题</label><input type="text" id="bmTitleInput" placeholder="网站名称"></div>
+    <div class="modal-field"><label for="bmUrlInput">URL</label><input type="text" id="bmUrlInput" placeholder="https://example.com"></div>
+    <div class="modal-field"><label for="bmCatSelect">分类</label><select id="bmCatSelect"></select></div>
+    <div class="modal-actions"><button class="btn-cancel" id="bmCancel">取消</button><button class="btn-save" id="bmSave">保存</button></div>
+  </div>
+</div>
+
+<div class="dup-banner" id="dupBanner"><span id="dupText"></span><button id="dupDedup">一键去重</button><button id="dupDismiss">忽略</button></div>
+
+<div class="toolbar" id="toolbar">
+  <div class="toolbar-row">
+    <input class="search-box" type="text" placeholder="搜索书签... (按 / 聚焦)" id="search">
+    <select class="sort-select" id="sortSelect">
+      <option value="name">按名称</option><option value="time">按时间</option><option value="recent">最近使用</option><option value="visits">访问次数</option>
+    </select>
+    <div class="view-toggle" id="viewToggle">
+      <button class="view-btn active" data-view="card" title="卡片视图"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+      <button class="view-btn" data-view="list" title="列表视图"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+    </div>
+  </div>
+  <div class="tags" id="tags"></div>
+</div>
+
+<div class="grid" id="grid"></div>
+<div class="homepage" id="homepage"></div>
+<div class="footer">Made by <a href="http://songit.cn/" target="_blank" rel="noopener">dreamsong</a></div>
+
+<script src="newtab.js"></script>
+</body>
+</html>
