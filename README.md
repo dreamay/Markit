@@ -105,6 +105,14 @@ markit/                Python 包
   renderer.py          HTML 生成（含前端 CSS/JS）
 ```
 
+## 项目分支
+
+```
+dev                    本地文件方式
+dev-crx                插件方式-代码可同时生成本地文件和插件
+dev-crx-mvp            插件方式-代码不可生成插件，不过插件可直接使用
+```
+
 ## 数据存储
 
 - **静态书签**：由 Python 生成时写入 HTML，来源于浏览器或 JSON 文件
