@@ -1,0 +1,22 @@
+[
+  {"title": "GitHub", "url": "https://github.com"},
+  {"title": "Python官方文档", "url": "https://docs.python.org/3/"},
+  {"title": "Stack Overflow", "url": "https://stackoverflow.com"},
+  {"title": "MDN Web Docs", "url": "https://developer.mozilla.org"},
+  {"title": "Hacker News", "url": "https://news.ycombinator.com"},
+  {"title": "Reddit", "url": "https://www.reddit.com"},
+  {"title": "YouTube", "url": "https://www.youtube.com"},
+  {"title": "Bilibili", "url": "https://www.bilibili.com"},
+  {"title": "Twitter / X", "url": "https://x.com"},
+  {"title": "ChatGPT", "url": "https://chat.openai.com"},
+  {"title": "Claude", "url": "https://claude.ai"},
+  {"title": "Google", "url": "https://www.google.com"},
+  {"title": "Wikipedia", "url": "https://en.wikipedia.org"},
+  {"title": "豆瓣", "url": "https://www.douban.com"},
+  {"title": "知乎", "url": "https://www.zhihu.com"},
+  {"title": "LeetCode", "url": "https://leetcode.com"},
+  {"title": "npm", "url": "https://www.npmjs.com"},
+  {"title": "Docker Hub", "url": "https://hub.docker.com"},
+  {"title": "AWS Console", "url": "https://console.aws.amazon.com"},
+  {"title": "Vercel", "url": "https://vercel.com"}
+]
