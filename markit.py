@@ -12,6 +12,7 @@ from markit.config import load_config, _build_rules
 from markit.parsers import load_bookmarks, auto_detect_bookmarks
 from markit.grouping import group_bookmarks, group_by_folder, group_by_browser
 from markit.renderer import generate_html
+from markit.ext_renderer import generate_extension
 folder_name = "markit_app"
 
 def main():
@@ -64,8 +65,11 @@ def main():
 
     os.makedirs(folder_name, exist_ok=True)
     out = generate_html(all_groups, args.output)
-    print(f"\n已生成: {out}")
-    print("用浏览器打开即可使用，右上角可切换分类视图，按 / 键可快速搜索")
+    print(f"\n已生成静态页面: {out}")
+
+    ext_out = generate_extension(rules)
+    print(f"已生成浏览器扩展: {ext_out}/")
+    print("用浏览器打开静态页面即可使用，或在 chrome://extensions/ 加载扩展目录")
 
 
 if __name__ == "__main__":

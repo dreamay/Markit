@@ -1,5 +1,5 @@
 (async () => {
-const RULES = {"开发工具": ["github", "gitlab", "bitbucket", "stackoverflow", "npmjs", "pypi", "hub.docker", "vercel", "netlify", "heroku", "codepen", "jsfiddle", "replit"], "编程文档": ["docs.python", "developer.mozilla", "devdocs", "readthedocs", "docs.rs", "pkg.go.dev", "learn.microsoft", "developer.apple"], "AI / 人工智能": ["openai", "claude", "anthropic", "huggingface", "kaggle", "colab.research.google", "bard.google"], "搜索引擎": ["google.com", "bing.com", "baidu.com", "duckduckgo"], "社交媒体": ["twitter", "x.com", "facebook", "instagram", "linkedin", "reddit", "mastodon"], "视频 / 媒体": ["youtube", "bilibili", "vimeo", "netflix", "spotify", "twitch"], "新闻 / 资讯": ["news.ycombinator", "techcrunch", "theverge", "arstechnica", "bbc.com", "cnn.com"], "知识 / 百科": ["wikipedia", "zhihu", "quora", "douban", "wikimedia"], "云服务": ["console.aws", "cloud.google", "portal.azure", "console.cloud"], "刷题 / 学习": ["leetcode", "hackerrank", "codeforces", "coursera", "udemy", "edx.org", "khanacademy"]};
+const RULES = __RULES__;
 const MODE_LABELS = {"home":"主页","readlater":"稍后阅读","folder":"文件夹","keyword":"关键词","browser":"浏览器"};
 const MODES = ['home','readlater','folder','keyword','browser'];
 

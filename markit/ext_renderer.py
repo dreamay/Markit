@@ -1,12 +1,52 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MarkIt - 新标签页</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%236366f1%22/><text x=%2216%22 y=%2223%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2220%22 font-weight=%22bold%22>M</text></svg>">
-<style>
-:root{--bg:#1a2236;--surface:#243049;--surface2:#3a4a6b;--text:#f1f5f9;--text2:#94a3b8;--accent:#6366f1;--accent2:#818cf8;--radius:12px}
+"""Chrome 扩展生成器 — 生成 extension/ 目录下的所有文件。"""
+
+import json
+import os
+import struct
+import zlib
+from pathlib import Path
+
+
+def _make_png_icon(size, color=(99, 102, 241)):
+    """生成纯色圆角 PNG 图标（纯 Python，零依赖）。"""
+    r, g, b = color
+    raw = b''
+    for y in range(size):
+        raw += b'\x00'  # filter byte
+        for x in range(size):
+            # 简单圆角：四角裁切
+            corner = size // 4
+            dx = min(x, size - 1 - x)
+            dy = min(y, size - 1 - y)
+            if dx < corner and dy < corner:
+                dist_sq = (corner - dx) ** 2 + (corner - dy) ** 2
+                if dist_sq > corner * corner:
+                    raw += bytes([0, 0, 0, 0])
+                    continue
+            raw += bytes([r, g, b, 255])
+
+    def _chunk(ctype, data):
+        c = ctype + data
+        return struct.pack('>I', len(data)) + c + struct.pack('>I', zlib.crc32(c) & 0xFFFFFFFF)
+
+    sig = b'\x89PNG\r\n\x1a\n'
+    ihdr = struct.pack('>IIBBBBB', size, size, 8, 6, 0, 0, 0)
+    return sig + _chunk(b'IHDR', ihdr) + _chunk(b'IDAT', zlib.compress(raw)) + _chunk(b'IEND', b'')
+
+
+# ── manifest.json ──────────────────────────────────────────────
+_MANIFEST = {
+    "manifest_version": 3,
+    "name": "MarkIt - 书签管理器",
+    "version": "1.0.0",
+    "description": "一款本地功能丰富的书签管理器，自动归类，多视图切换，支持搜索、收藏、稍后阅读。",
+    "permissions": ["bookmarks", "storage"],
+    "chrome_url_overrides": {"newtab": "newtab.html"},
+    "icons": {"16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png"},
+}
+
+# ── CSS (与 newtab.html <style> 完全一致) ──────────────────────
+_CSS = """:root{--bg:#1a2236;--surface:#243049;--surface2:#3a4a6b;--text:#f1f5f9;--text2:#94a3b8;--accent:#6366f1;--accent2:#818cf8;--radius:12px}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;background-size:cover;background-position:center;background-attachment:fixed}
 .header{text-align:center;padding:48px 20px 16px;position:relative}
@@ -26,8 +66,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .icon-btn:hover{border-color:var(--accent2);color:var(--accent2)}
 .icon-btn.syncing svg{animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-/* PLACEHOLDER_CSS_MORE */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+/* PLACEHOLDER_CSS_MORE */"""
+
+_CSS_MORE = """.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .modal-overlay.open{display:flex}
 .modal{background:var(--surface);border:1px solid var(--surface2);border-radius:16px;padding:28px;width:460px;max-width:90vw;max-height:80vh;overflow-y:auto}
 .modal h2{font-size:1.15rem;font-weight:600;margin-bottom:20px;color:var(--text)}
@@ -115,10 +156,10 @@ body.light .card{background:#fff}
 body.light .card-action{background:#e5e7eb;color:#6b7280}
 body.light .search-box,body.light .sort-select{background:#fff;color:#1f2937;border-color:#d1d5db}
 body.light .dup-banner{background:rgba(245,158,11,.1)}
-@media(max-width:600px){.grid{grid-template-columns:1fr}.header h1{font-size:1.5rem}.header{padding-top:100px}.top-left{position:static;justify-content:center;margin:0 auto 8px;flex-wrap:wrap}.top-bar{position:static;justify-content:center;margin:0 auto 8px;flex-wrap:wrap}.clock-display{display:none}}
-</style>
-</head>
-<body>
+@media(max-width:600px){.grid{grid-template-columns:1fr}.header h1{font-size:1.5rem}.header{padding-top:100px}.top-left{position:static;justify-content:center;margin:0 auto 8px;flex-wrap:wrap}.top-bar{position:static;justify-content:center;margin:0 auto 8px;flex-wrap:wrap}.clock-display{display:none}}"""
+
+# ── HTML body ──────────────────────────────────────────────────
+_BODY = """<body>
 <div class="header">
   <div class="top-left"><div class="mode-switcher" id="modeSwitcher"></div></div>
   <div class="top-bar">
@@ -195,4 +236,63 @@ body.light .dup-banner{background:rgba(245,158,11,.1)}
 
 <script src="newtab.js"></script>
 </body>
-</html>
+</html>"""
+
+# ── PLACEHOLDER_GENERATE ──
+
+
+def _build_ext_js(rules: dict) -> str:
+    """构建扩展 JS 代码，注入分类规则。"""
+    rules_json = json.dumps(rules, ensure_ascii=False)
+    tmpl_path = Path(__file__).parent / "ext_newtab.js"
+    if not tmpl_path.exists():
+        raise FileNotFoundError(f"扩展 JS 模板文件不存在: {tmpl_path}")
+    js = tmpl_path.read_text(encoding="utf-8")
+    return js.replace("__RULES__", rules_json)
+
+
+def generate_extension(rules: dict, output_dir: str = "extension") -> str:
+    """生成 Chrome 扩展的所有文件到 output_dir 目录。"""
+    out = Path(output_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    icons_dir = out / "icons"
+    icons_dir.mkdir(exist_ok=True)
+
+    # 1. manifest.json
+    (out / "manifest.json").write_text(
+        json.dumps(_MANIFEST, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    # 2. icons
+    for size in (16, 48, 128):
+        icon_path = icons_dir / f"icon{size}.png"
+        if not icon_path.exists():
+            icon_path.write_bytes(_make_png_icon(size))
+
+    # 3. newtab.html
+    favicon = (
+        "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 "
+        "viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 "
+        "rx=%228%22 fill=%22%236366f1%22/><text x=%2216%22 y=%2223%22 "
+        "text-anchor=%22middle%22 fill=%22white%22 font-size=%2220%22 "
+        "font-weight=%22bold%22>M</text></svg>"
+    )
+    html = (
+        '<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n'
+        '<meta charset="UTF-8">\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
+        '<title>MarkIt - 新标签页</title>\n'
+        f'<link rel="icon" href="{favicon}">\n'
+        f"<style>\n{_CSS}\n{_CSS_MORE}\n</style>\n"
+        "</head>\n"
+        f"{_BODY}\n"
+    )
+    (out / "newtab.html").write_text(html, encoding="utf-8")
+
+    # 4. newtab.js
+    js = _build_ext_js(rules)
+    (out / "newtab.js").write_text(js, encoding="utf-8")
+
+    return str(out)
+
