@@ -5,14 +5,14 @@ MarkIt - 书签收藏管理工具
 """
 
 import argparse
-import sys
+import sys,os
 from pathlib import Path
 
 from markit.config import load_config, _build_rules
 from markit.parsers import load_bookmarks, auto_detect_bookmarks
 from markit.grouping import group_bookmarks, group_by_folder, group_by_browser
 from markit.renderer import generate_html
-
+folder_name = "markit_app"
 
 def main():
     parser = argparse.ArgumentParser(
@@ -30,7 +30,7 @@ def main():
                         help="自动从已安装的浏览器读取书签（Chrome/Edge/Firefox/Safari）")
     parser.add_argument("-i", "--input", default="bookmarks.json",
                         help="书签文件路径，支持 .json 或浏览器导出的 .html (默认: bookmarks.json)")
-    parser.add_argument("-o", "--output", default="index.html",
+    parser.add_argument("-o", "--output", default= folder_name + "/index.html",
                         help="输出 HTML 文件路径 (默认: index.html)")
     args = parser.parse_args()
 
@@ -62,6 +62,7 @@ def main():
     ):
         print(f"  [{mode_label}] {len(groups)} 个分类")
 
+    os.makedirs(folder_name, exist_ok=True)
     out = generate_html(all_groups, args.output)
     print(f"\n已生成: {out}")
     print("用浏览器打开即可使用，右上角可切换分类视图，按 / 键可快速搜索")
