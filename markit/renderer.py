@@ -61,7 +61,7 @@ def generate_html(all_groups: dict[str, dict[str, list[dict]]], output: str = "i
     for mode, groups in all_groups.items():
         categories_data[mode] = list(groups.keys())
     categories_json = json.dumps(categories_data, ensure_ascii=False)
-    mode_labels_json = json.dumps({"folder": "文件夹", "keyword": "关键词", "browser": "浏览器"}, ensure_ascii=False)
+    mode_labels_json = json.dumps({"home": "主页", "folder": "文件夹", "keyword": "关键词", "browser": "浏览器"}, ensure_ascii=False)
     rules_json = json.dumps(CATEGORY_RULES, ensure_ascii=False)
 
     # ---- 构建 HTML ----
@@ -229,6 +229,20 @@ def generate_html(all_groups: dict[str, dict[str, list[dict]]], output: str = "i
   .settings-row button:hover { border-color: var(--accent2); color: var(--accent2); }
   .footer { text-align: center; padding: 20px; color: var(--text2); font-size: 0.8rem; }
   .footer a { color: var(--accent2); text-decoration: none; }
+  .homepage { max-width: 900px; margin: 0 auto; padding: 0 20px 60px; display: none; }
+  .homepage.active { display: block; }
+  .home-section { margin-bottom: 28px; }
+  .home-section-title {
+    font-size: 0.95rem; font-weight: 600; color: var(--text2); margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .home-section-title svg { opacity: .6; }
+  .home-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px;
+  }
+  .home-empty { color: var(--text2); font-size: 0.85rem; padding: 16px 0; opacity: .6; }
+  .card-action.pin-action.pinned { color: #f59e0b; }
+  .card-action.pin-action.pinned:hover { background: #f59e0b; color: #fff; }
   .dup-banner {
     max-width: 900px; margin: 0 auto 12px; padding: 10px 20px;
     background: rgba(245,158,11,.15); border: 1px solid #f59e0b;
@@ -357,6 +371,30 @@ def generate_html(all_groups: dict[str, dict[str, list[dict]]], output: str = "i
 {cards_html}
 </div>
 
+<div class="homepage" id="homepage">
+  <div class="home-section">
+    <div class="home-section-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      常用书签
+    </div>
+    <div class="home-grid" id="homePinned"></div>
+  </div>
+  <div class="home-section">
+    <div class="home-section-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      最近访问
+    </div>
+    <div class="home-grid" id="homeRecent"></div>
+  </div>
+  <div class="home-section">
+    <div class="home-section-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      访问最多
+    </div>
+    <div class="home-grid" id="homeTopVisits"></div>
+  </div>
+</div>
+
 <div class="footer">Made by <a href="http://songit.cn/" target="_blank" rel="noopener">dreamsong</a></div>
 """)
     # JS - plain string with placeholders, then replace
@@ -364,10 +402,11 @@ def generate_html(all_groups: dict[str, dict[str, list[dict]]], output: str = "i
 const CATEGORIES = __CATEGORIES__;
 const MODE_LABELS = __MODE_LABELS__;
 const RULES = __RULES__;
-const MODES = Object.keys(CATEGORIES);
+const MODES = ['home', ...Object.keys(CATEGORIES)];
 const STORAGE_KEY = 'markit-custom-bookmarks';
 const VISITS_KEY = 'markit-visits';
 const RECENT_KEY = 'markit-recent';
+const PINS_KEY = 'markit-pins';
 
 const modeSwitcher = document.getElementById('modeSwitcher');
 const tagsEl = document.getElementById('tags');
@@ -376,8 +415,8 @@ const searchInput = document.getElementById('search');
 const statsEl = document.getElementById('stats');
 const staticTotal = __TOTAL__;
 
-let currentMode = localStorage.getItem('markit-mode') || 'keyword';
-if (!MODES.includes(currentMode)) currentMode = 'keyword';
+let currentMode = localStorage.getItem('markit-mode') || 'home';
+if (!MODES.includes(currentMode)) currentMode = 'home';
 let activeCat = 'all';
 let currentSort = localStorage.getItem('markit-sort') || 'name';
 let currentView = localStorage.getItem('markit-view') || 'card';
@@ -419,6 +458,16 @@ function addVisit(url) {
 function getRecent() {
   try { return JSON.parse(localStorage.getItem(RECENT_KEY)) || []; } catch { return []; }
 }
+function getPins() {
+  try { return JSON.parse(localStorage.getItem(PINS_KEY)) || []; } catch { return []; }
+}
+function togglePin(url) {
+  const pins = getPins();
+  const idx = pins.indexOf(url);
+  if (idx >= 0) pins.splice(idx, 1); else pins.push(url);
+  localStorage.setItem(PINS_KEY, JSON.stringify(pins));
+  return idx < 0;
+}
 
 // ---- custom cards ----
 function renderCustomCards() {
@@ -437,7 +486,7 @@ function renderCustomCards() {
     card.draggable = true;
     card.setAttribute('data-cat-folder', bm.folder || '手动添加');
     card.setAttribute('data-cat-keyword', cat);
-    card.setAttribute('data-cat-browser', '手动添加');
+    card.setAttribute('data-cat-browser', bm.browser || '手动添加');
     card.setAttribute('data-custom-idx', idx);
     card.setAttribute('data-url', bm.url);
     card.setAttribute('data-title', t);
@@ -450,8 +499,11 @@ function renderCustomCards() {
     const info = document.createElement('div'); info.className = 'info';
     info.innerHTML = '<div class="title">' + escapeHtml(t) + '</div><div class="domain">' + escapeHtml(domain) + '</div><div class="visit-count"></div>';
     const actions = document.createElement('div'); actions.className = 'card-actions';
-    actions.innerHTML = '<button class="card-action edit-action" data-idx="' + idx + '" title="编辑">&#9998;</button>'
-      + '<button class="card-action share-action" data-url="' + escapeHtml(bm.url) + '" data-title="' + escapeHtml(t) + '" title="分享">&#8599;</button>'
+    const pins = getPins();
+    const isPinned = pins.includes(bm.url);
+    actions.innerHTML = '<button class="card-action pin-action' + (isPinned ? ' pinned' : '') + '" data-url="' + escapeHtml(bm.url) + '" title="' + (isPinned ? '取消收藏' : '收藏到主页') + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="' + (isPinned ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>'
+      + '<button class="card-action edit-action" data-idx="' + idx + '" title="编辑">&#9998;</button>'
+      + '<button class="card-action copy-action" data-url="' + escapeHtml(bm.url) + '" data-title="' + escapeHtml(t) + '" title="复制"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>'
       + '<button class="card-action del-action" data-idx="' + idx + '" title="删除">&times;</button>';
     card.appendChild(img); card.appendChild(info); card.appendChild(actions);
     gridEl.appendChild(card);
@@ -465,8 +517,11 @@ function addStaticCardActions() {
     const url = card.getAttribute('data-url') || card.href;
     const title = card.getAttribute('data-title') || card.querySelector('.title')?.textContent || '';
     const actions = document.createElement('div'); actions.className = 'card-actions';
-    actions.innerHTML = '<button class="card-action edit-static" data-url="' + escapeHtml(url) + '" data-title="' + escapeHtml(title) + '" title="编辑">&#9998;</button>'
-      + '<button class="card-action share-action" data-url="' + escapeHtml(url) + '" data-title="' + escapeHtml(title) + '" title="分享">&#8599;</button>'
+    const pinsS = getPins();
+    const isPinnedS = pinsS.includes(url);
+    actions.innerHTML = '<button class="card-action pin-action' + (isPinnedS ? ' pinned' : '') + '" data-url="' + escapeHtml(url) + '" title="' + (isPinnedS ? '取消收藏' : '收藏到主页') + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="' + (isPinnedS ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>'
+      + '<button class="card-action edit-static" data-url="' + escapeHtml(url) + '" data-title="' + escapeHtml(title) + '" title="编辑">&#9998;</button>'
+      + '<button class="card-action copy-action" data-url="' + escapeHtml(url) + '" data-title="' + escapeHtml(title) + '" title="复制"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>'
       + '<button class="card-action del-static" data-url="' + escapeHtml(url) + '" title="删除">&times;</button>';
     card.appendChild(actions);
   });
@@ -497,6 +552,17 @@ gridEl.addEventListener('click', e => {
   const action = e.target.closest('.card-action');
   if (action) {
     e.preventDefault(); e.stopPropagation();
+    // pin to homepage
+    if (action.classList.contains('pin-action')) {
+      const pinUrl = action.dataset.url;
+      const nowPinned = togglePin(pinUrl);
+      action.classList.toggle('pinned', nowPinned);
+      action.title = nowPinned ? '取消收藏' : '收藏到主页';
+      const svg = action.querySelector('svg');
+      if (svg) svg.setAttribute('fill', nowPinned ? 'currentColor' : 'none');
+      if (currentMode === 'home') renderHomepage();
+      return;
+    }
     // edit custom
     if (action.classList.contains('edit-action')) {
       const idx = parseInt(action.dataset.idx);
@@ -511,11 +577,11 @@ gridEl.addEventListener('click', e => {
       renderCustomCards(); addStaticCardActions(); buildTags(); filter();
       return;
     }
-    // share
-    if (action.classList.contains('share-action')) {
+    // copy
+    if (action.classList.contains('copy-action')) {
       const url = action.dataset.url; const title = action.dataset.title;
-      if (navigator.share) { navigator.share({ title, url }); }
-      else { navigator.clipboard.writeText(url).then(() => { const old = action.innerHTML; action.innerHTML = '&#10003;'; setTimeout(() => action.innerHTML = old, 1000); }); }
+      const text = title + ' - ' + url;
+      navigator.clipboard.writeText(text).then(() => { const old = action.innerHTML; action.innerHTML = '&#10003;'; setTimeout(() => action.innerHTML = old, 1200); });
       return;
     }
     // edit static
@@ -539,15 +605,16 @@ gridEl.addEventListener('click', e => {
 // ---- categories ----
 function collectCategories() {
   const cats = {};
-  for (const m of MODES) cats[m] = new Set(CATEGORIES[m] || []);
+  const dataModes = MODES.filter(m => m !== 'home');
+  for (const m of dataModes) cats[m] = new Set(CATEGORIES[m] || []);
   const customs = loadCustom();
   customs.forEach(bm => {
     cats['folder'].add(bm.folder || '手动添加');
     cats['keyword'].add(bm.category || classifyUrl(bm.url));
-    cats['browser'].add('手动添加');
+    cats['browser'].add(bm.browser || '手动添加');
   });
   const result = {};
-  for (const m of MODES) {
+  for (const m of dataModes) {
     const arr = [...cats[m]];
     arr.sort((a, b) => { if (a === '其他') return 1; if (b === '其他') return -1; return a.localeCompare(b); });
     result[m] = arr;
@@ -560,7 +627,11 @@ MODES.forEach(mode => {
   const btn = document.createElement('button');
   btn.className = 'mode-btn' + (mode === currentMode ? ' active' : '');
   btn.dataset.mode = mode;
-  btn.textContent = MODE_LABELS[mode] || mode;
+  if (mode === 'home') {
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 主页';
+  } else {
+    btn.textContent = MODE_LABELS[mode] || mode;
+  }
   modeSwitcher.appendChild(btn);
 });
 
@@ -648,10 +719,104 @@ function filter() {
   } else if (empty) { empty.remove(); }
 }
 
+// ---- homepage ----
+const homepageEl = document.getElementById('homepage');
+const toolbarEl = document.querySelector('.toolbar');
+const dupBannerEl = document.getElementById('dupBanner');
+
+function getAllCardData() {
+  const cards = [];
+  gridEl.querySelectorAll('.card').forEach(card => {
+    const url = card.getAttribute('data-url') || card.href;
+    const title = card.getAttribute('data-title') || card.querySelector('.title')?.textContent || '';
+    if (url) cards.push({ url, title });
+  });
+  return cards;
+}
+
+function createHomeCard(bm) {
+  const domain = domainOf(bm.url);
+  const t = bm.title || '';
+  const first = t.charAt(0) || '?';
+  const card = document.createElement('a');
+  card.className = 'card';
+  card.href = bm.url;
+  card.target = '_blank';
+  card.rel = 'noopener';
+  card.setAttribute('data-url', bm.url);
+  card.setAttribute('data-title', t);
+  const img = document.createElement('img');
+  img.className = 'favicon'; img.src = faviconSrc(bm.url); img.alt = ''; img.loading = 'lazy';
+  img.onerror = function() {
+    this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%234f46e5'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='white' font-size='18'%3E" + encodeURIComponent(first) + "%3C/text%3E%3C/svg%3E";
+  };
+  const info = document.createElement('div'); info.className = 'info';
+  const visits = getVisits();
+  const count = visits[bm.url] || 0;
+  info.innerHTML = '<div class="title">' + escapeHtml(t) + '</div><div class="domain">' + escapeHtml(domain) + '</div>' + (count > 0 ? '<div class="visit-count">' + count + ' 次访问</div>' : '');
+  card.appendChild(img); card.appendChild(info);
+  card.addEventListener('click', () => { addVisit(bm.url); });
+  return card;
+}
+
+function renderHomepage() {
+  const allCards = getAllCardData();
+  const urlMap = {};
+  allCards.forEach(c => { urlMap[c.url] = c; });
+  // also include custom bookmarks
+  const customs = loadCustom();
+  customs.forEach(c => { if (!urlMap[c.url]) urlMap[c.url] = { url: c.url, title: c.title || c.url }; });
+
+  // pinned
+  const pinnedEl = document.getElementById('homePinned');
+  pinnedEl.innerHTML = '';
+  const pins = getPins();
+  const pinnedItems = pins.map(url => urlMap[url]).filter(Boolean);
+  if (pinnedItems.length === 0) {
+    pinnedEl.innerHTML = '<div class="home-empty">点击书签上的 ★ 图标收藏到主页</div>';
+  } else {
+    pinnedItems.forEach(bm => pinnedEl.appendChild(createHomeCard(bm)));
+  }
+
+  // recent
+  const recentEl = document.getElementById('homeRecent');
+  recentEl.innerHTML = '';
+  const recent = getRecent();
+  const recentItems = recent.slice(0, 12).map(url => urlMap[url]).filter(Boolean);
+  if (recentItems.length === 0) {
+    recentEl.innerHTML = '<div class="home-empty">访问书签后会显示在这里</div>';
+  } else {
+    recentItems.forEach(bm => recentEl.appendChild(createHomeCard(bm)));
+  }
+
+  // top visits
+  const topEl = document.getElementById('homeTopVisits');
+  topEl.innerHTML = '';
+  const visits = getVisits();
+  const sorted = Object.entries(visits).sort((a, b) => b[1] - a[1]).slice(0, 12);
+  const topItems = sorted.map(([url]) => urlMap[url]).filter(Boolean);
+  if (topItems.length === 0) {
+    topEl.innerHTML = '<div class="home-empty">访问书签后会显示在这里</div>';
+  } else {
+    topItems.forEach(bm => topEl.appendChild(createHomeCard(bm)));
+  }
+}
+
 function switchMode(mode) {
   currentMode = mode; localStorage.setItem('markit-mode', mode);
   modeSwitcher.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
-  buildTags(); sortCards(); filter();
+  const isHome = mode === 'home';
+  homepageEl.classList.toggle('active', isHome);
+  gridEl.style.display = isHome ? 'none' : '';
+  toolbarEl.style.display = isHome ? 'none' : '';
+  if (dupBannerEl) dupBannerEl.style.display = isHome ? 'none' : '';
+  if (isHome) {
+    renderHomepage();
+    const totalCount = staticTotal + loadCustom().length;
+    statsEl.textContent = '共 ' + totalCount + ' 个书签 · 主页';
+  } else {
+    buildTags(); sortCards(); filter();
+  }
 }
 modeSwitcher.addEventListener('click', e => {
   if (!e.target.classList.contains('mode-btn')) return;
@@ -865,7 +1030,7 @@ importFile.addEventListener('change', e => {
       let added = 0;
       data.forEach(bm => {
         if (bm.url && !existing.has(bm.url)) {
-          customs.push({ title: bm.title || bm.url, url: bm.url, category: bm.category || '' });
+          customs.push({ title: bm.title || bm.url, url: bm.url, category: bm.category || '本地导入', folder: bm.folder || '本地导入' });
           existing.add(bm.url); added++;
         }
       });
@@ -937,13 +1102,11 @@ gridEl.addEventListener('dragend', () => {
 // ---- init ----
 renderCustomCards();
 addStaticCardActions();
-buildTags();
 applyView();
 applyTheme();
-sortCards();
-filter();
-updateVisitCounts();
 applyBg();
+switchMode(currentMode);
+updateVisitCounts();
 checkDuplicates();
 </script>
 </body>
