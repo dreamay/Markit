@@ -167,17 +167,23 @@ def generate_html(all_groups: dict[str, dict[str, list[dict]]], output: str = "i
     cursor: pointer; transition: all .2s; display: flex; align-items: center;
   }
   .view-btn.active { background: var(--accent); color: #fff; }
-  .tags { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; padding: 4px 0; }
   .tag {
-    padding: 6px 14px; border-radius: 20px; font-size: 0.85rem;
+    padding: 5px 12px; border-radius: 20px; font-size: 0.82rem;
     border: 1px solid var(--surface2); background: transparent;
-    color: var(--text2); cursor: pointer; transition: all .2s;
+    color: var(--text2); cursor: pointer; transition: all .2s; position: relative;
   }
   .tag:hover { border-color: var(--accent2); color: var(--accent2); }
   .tag.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .tag .del-cat { margin-left: 6px; font-size: 14px; font-weight: bold; opacity: 0; transition: opacity .15s; cursor: pointer; }
-  .tag:hover .del-cat { opacity: .7; }
-  .tag .del-cat:hover { opacity: 1; }
+  .tag .del-cat {
+    display: inline-block; width: 14px; height: 14px; line-height: 14px;
+    text-align: center; font-size: 10px; border-radius: 50%;
+    margin-left: 4px; vertical-align: middle;
+    opacity: 0; transition: opacity .15s; cursor: pointer;
+    background: rgba(255,255,255,.15);
+  }
+  .tag:hover .del-cat { opacity: .6; }
+  .tag .del-cat:hover { opacity: 1; background: #dc2626; color: #fff; }
   .grid {
     max-width: 900px; margin: 0 auto; padding: 0 20px 60px;
     display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px;
@@ -234,6 +240,16 @@ def generate_html(all_groups: dict[str, dict[str, list[dict]]], output: str = "i
     margin-left: auto; padding: 4px 12px; border-radius: 6px; border: 1px solid #f59e0b;
     background: transparent; color: #fbbf24; cursor: pointer; font-size: 0.8rem;
   }
+  body.light {
+    --bg: #f0f2f5; --surface: #ffffff; --surface2: #d1d5db;
+    --text: #1f2937; --text2: #6b7280; --accent: #6366f1; --accent2: #818cf8;
+  }
+  body.light .modal { background: #fff; border-color: #d1d5db; }
+  body.light .modal input[type="text"], body.light .modal select { background: #f0f2f5; color: #1f2937; border-color: #d1d5db; }
+  body.light .card { background: #fff; }
+  body.light .card-action { background: #e5e7eb; color: #6b7280; }
+  body.light .search-box, body.light .sort-select { background: #fff; color: #1f2937; border-color: #d1d5db; }
+  body.light .dup-banner { background: rgba(245,158,11,.1); }
   @media (max-width: 600px) {
     .grid { grid-template-columns: 1fr; }
     .header h1 { font-size: 1.5rem; }
@@ -250,6 +266,9 @@ def generate_html(all_groups: dict[str, dict[str, list[dict]]], output: str = "i
     <div class="mode-switcher" id="modeSwitcher"></div>
     <button class="icon-btn" id="addBtn" title="添加书签">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+    <button class="icon-btn" id="themeBtn" title="切换明暗模式">
+      <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
     </button>
     <button class="icon-btn" id="settingsBtn" title="设置">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -318,6 +337,7 @@ def generate_html(all_groups: dict[str, dict[str, list[dict]]], output: str = "i
     <input class="search-box" type="text" placeholder="搜索书签... (按 / 聚焦)" id="search">
     <select class="sort-select" id="sortSelect">
       <option value="name">按名称</option>
+      <option value="time">按时间</option>
       <option value="recent">最近使用</option>
       <option value="visits">访问次数</option>
     </select>
@@ -337,7 +357,7 @@ def generate_html(all_groups: dict[str, dict[str, list[dict]]], output: str = "i
 {cards_html}
 </div>
 
-<div class="footer">Made by dreamsong</div>
+<div class="footer">Made by <a href="http://songit.cn/" target="_blank" rel="noopener">dreamsong</a></div>
 """)
     # JS - plain string with placeholders, then replace
     js = """<script>
@@ -414,6 +434,7 @@ function renderCustomCards() {
     card.href = bm.url;
     card.target = '_blank';
     card.rel = 'noopener';
+    card.draggable = true;
     card.setAttribute('data-cat-folder', bm.folder || '手动添加');
     card.setAttribute('data-cat-keyword', cat);
     card.setAttribute('data-cat-browser', '手动添加');
@@ -445,7 +466,8 @@ function addStaticCardActions() {
     const title = card.getAttribute('data-title') || card.querySelector('.title')?.textContent || '';
     const actions = document.createElement('div'); actions.className = 'card-actions';
     actions.innerHTML = '<button class="card-action edit-static" data-url="' + escapeHtml(url) + '" data-title="' + escapeHtml(title) + '" title="编辑">&#9998;</button>'
-      + '<button class="card-action share-action" data-url="' + escapeHtml(url) + '" data-title="' + escapeHtml(title) + '" title="分享">&#8599;</button>';
+      + '<button class="card-action share-action" data-url="' + escapeHtml(url) + '" data-title="' + escapeHtml(title) + '" title="分享">&#8599;</button>'
+      + '<button class="card-action del-static" data-url="' + escapeHtml(url) + '" title="删除">&times;</button>';
     card.appendChild(actions);
   });
 }
@@ -499,6 +521,12 @@ gridEl.addEventListener('click', e => {
     // edit static
     if (action.classList.contains('edit-static')) {
       openStaticEditModal(action.dataset.url, action.dataset.title, card);
+      return;
+    }
+    // delete static (hide from page)
+    if (action.classList.contains('del-static')) {
+      if (!confirm('确定删除此书签？')) return;
+      card.remove(); filter();
       return;
     }
     return;
@@ -584,13 +612,14 @@ function sortCards() {
   const cards = getAllCards();
   const visits = getVisits();
   const recent = getRecent();
+  if (currentSort === 'time') { cards.forEach(c => gridEl.appendChild(c)); return; }
   cards.sort((a, b) => {
     const urlA = a.getAttribute('data-url') || a.href;
     const urlB = b.getAttribute('data-url') || b.href;
     if (currentSort === 'visits') return (visits[urlB] || 0) - (visits[urlA] || 0);
     if (currentSort === 'recent') return (recent.indexOf(urlA) === -1 ? 9999 : recent.indexOf(urlA)) - (recent.indexOf(urlB) === -1 ? 9999 : recent.indexOf(urlB));
-    const tA = (a.getAttribute('data-title') || a.querySelector('.title')?.textContent || '').toLowerCase();
-    const tB = (b.getAttribute('data-title') || b.querySelector('.title')?.textContent || '').toLowerCase();
+    const tA = (a.getAttribute('data-title') || '').toLowerCase();
+    const tB = (b.getAttribute('data-title') || '').toLowerCase();
     return tA.localeCompare(tB);
   });
   cards.forEach(c => gridEl.appendChild(c));
@@ -813,8 +842,13 @@ settingsSave.addEventListener('click', () => {
 });
 
 exportBtn.addEventListener('click', () => {
-  const customs = loadCustom();
-  const blob = new Blob([JSON.stringify(customs, null, 2)], { type: 'application/json' });
+  const all = [];
+  gridEl.querySelectorAll('.card').forEach(card => {
+    const url = card.getAttribute('data-url') || card.href;
+    const title = card.getAttribute('data-title') || card.querySelector('.title')?.textContent || '';
+    if (url) all.push({ title, url });
+  });
+  const blob = new Blob([JSON.stringify(all, null, 2)], { type: 'application/json' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
   a.download = 'markit-bookmarks.json'; a.click(); URL.revokeObjectURL(a.href);
 });
@@ -847,11 +881,65 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { settingsModal.classList.remove('open'); closeBmModal(); }
 });
 
+// ---- theme toggle ----
+const themeBtn = document.getElementById('themeBtn');
+const themeIcon = document.getElementById('themeIcon');
+const THEME_KEY = 'markit-theme';
+function applyTheme() {
+  const theme = localStorage.getItem(THEME_KEY) || 'dark';
+  document.body.classList.toggle('light', theme === 'light');
+  themeIcon.innerHTML = theme === 'light'
+    ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'
+    : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+}
+themeBtn.addEventListener('click', () => {
+  const cur = localStorage.getItem(THEME_KEY) || 'dark';
+  localStorage.setItem(THEME_KEY, cur === 'dark' ? 'light' : 'dark');
+  applyTheme();
+});
+
+// ---- drag to reorder (custom bookmarks only) ----
+let dragCard = null;
+gridEl.addEventListener('dragstart', e => {
+  const card = e.target.closest('.card.custom');
+  if (!card) return;
+  dragCard = card;
+  card.style.opacity = '0.5';
+  e.dataTransfer.effectAllowed = 'move';
+});
+gridEl.addEventListener('dragover', e => {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+});
+gridEl.addEventListener('drop', e => {
+  e.preventDefault();
+  if (!dragCard) return;
+  const target = e.target.closest('.card.custom');
+  if (target && target !== dragCard) {
+    const allCustom = [...gridEl.querySelectorAll('.card.custom')];
+    const fromIdx = allCustom.indexOf(dragCard);
+    const toIdx = allCustom.indexOf(target);
+    if (fromIdx >= 0 && toIdx >= 0) {
+      const customs = loadCustom();
+      const [moved] = customs.splice(fromIdx, 1);
+      customs.splice(toIdx, 0, moved);
+      saveCustom(customs);
+      renderCustomCards(); addStaticCardActions(); updateVisitCounts(); filter();
+    }
+  }
+  dragCard.style.opacity = '1';
+  dragCard = null;
+});
+gridEl.addEventListener('dragend', () => {
+  if (dragCard) { dragCard.style.opacity = '1'; dragCard = null; }
+});
+
 // ---- init ----
 renderCustomCards();
 addStaticCardActions();
 buildTags();
 applyView();
+applyTheme();
 sortCards();
 filter();
 updateVisitCounts();
