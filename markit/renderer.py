@@ -96,21 +96,32 @@ def generate_html(all_groups: dict[str, dict[str, list[dict]]], output: str = "i
   }
   .subtitle { color: var(--text2); font-size: 0.85rem; margin-top: 4px; }
   .header .stats { color: var(--text2); margin-top: 8px; font-size: 0.95rem; }
+  .top-left {
+    position: absolute; top: 20px; left: 20px;
+    display: flex; align-items: center; gap: 8px;
+  }
   .top-bar {
     position: absolute; top: 20px; right: 20px;
     display: flex; align-items: center; gap: 8px;
   }
   .mode-switcher {
-    display: flex; gap: 4px; background: var(--surface);
+    display: flex; gap: 2px; background: var(--surface);
     border-radius: 8px; padding: 4px; border: 1px solid var(--surface2);
   }
   .mode-btn {
-    padding: 6px 14px; border-radius: 6px; font-size: 0.85rem;
+    padding: 6px 12px; border-radius: 6px; font-size: 0.85rem;
     border: none; background: transparent;
     color: var(--text2); cursor: pointer; transition: all .2s; white-space: nowrap;
   }
   .mode-btn:hover { color: var(--accent2); }
   .mode-btn.active { background: var(--accent); color: #fff; }
+  .clock-display {
+    display: flex; align-items: center; gap: 6px; padding: 5px 14px;
+    background: var(--surface); border: 1px solid var(--surface2);
+    border-radius: 8px; font-variant-numeric: tabular-nums;
+  }
+  .clock-time { font-size: 0.95rem; font-weight: 600; color: var(--text); }
+  .clock-date { font-size: 0.78rem; color: var(--text2); }
   .icon-btn {
     width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--surface2);
     background: var(--surface); color: var(--text2); cursor: pointer;
@@ -253,9 +264,11 @@ def generate_html(all_groups: dict[str, dict[str, list[dict]]], output: str = "i
   }
   .dup-banner.show { display: flex; }
   .dup-banner button {
-    margin-left: auto; padding: 4px 12px; border-radius: 6px; border: 1px solid #f59e0b;
+    padding: 4px 12px; border-radius: 6px; border: 1px solid #f59e0b;
     background: transparent; color: #fbbf24; cursor: pointer; font-size: 0.8rem;
   }
+  .dup-banner button:first-of-type { margin-left: auto; }
+  .dup-banner button:hover { background: #f59e0b; color: #1a2236; }
   body.light {
     --bg: #f0f2f5; --surface: #ffffff; --surface2: #d1d5db;
     --text: #1f2937; --text2: #6b7280; --accent: #6366f1; --accent2: #818cf8;
@@ -266,10 +279,30 @@ def generate_html(all_groups: dict[str, dict[str, list[dict]]], output: str = "i
   body.light .card-action { background: #e5e7eb; color: #6b7280; }
   body.light .search-box, body.light .sort-select { background: #fff; color: #1f2937; border-color: #d1d5db; }
   body.light .dup-banner { background: rgba(245,158,11,.1); }
+  .settings-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; font-size: 0.85rem; color: var(--text2);
+  }
+  .toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; cursor: pointer; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0; background: var(--surface2);
+    border-radius: 11px; transition: .3s;
+  }
+  .toggle-slider::before {
+    content: ''; position: absolute; width: 16px; height: 16px;
+    left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .3s;
+  }
+  .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+  .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
+  .sync-status { font-size: 0.78rem; color: var(--text2); margin-top: 6px; opacity: .7; }
   @media (max-width: 600px) {
     .grid { grid-template-columns: 1fr; }
     .header h1 { font-size: 1.5rem; }
-    .top-bar { position: static; justify-content: center; margin: 16px auto 0; flex-wrap: wrap; }
+    .header { padding-top: 100px; }
+    .top-left { position: static; justify-content: center; margin: 0 auto 8px; flex-wrap: wrap; }
+    .top-bar { position: static; justify-content: center; margin: 0 auto 8px; flex-wrap: wrap; }
+    .clock-display { display: none; }
   }
 </style>
 </head>
@@ -278,8 +311,14 @@ def generate_html(all_groups: dict[str, dict[str, list[dict]]], output: str = "i
     # Body HTML
     parts.append(f"""
 <div class="header">
-  <div class="top-bar">
+  <div class="top-left">
     <div class="mode-switcher" id="modeSwitcher"></div>
+  </div>
+  <div class="top-bar">
+    <div class="clock-display" id="clockDisplay">
+      <span class="clock-time" id="clockTime">--:--:--</span>
+      <span class="clock-date" id="clockDate"></span>
+    </div>
     <button class="icon-btn" id="addBtn" title="添加书签">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
@@ -312,6 +351,20 @@ def generate_html(all_groups: dict[str, dict[str, list[dict]]], output: str = "i
       </div>
       <input type="file" id="importFile" accept=".json" style="display:none">
     </div>
+    <div class="settings-section">
+      <h3>浏览器书签同步</h3>
+      <div class="settings-row">
+        <button id="settingsLoadBrowserBtn">加载浏览器书签</button>
+      </div>
+      <div id="syncStatus" class="sync-status"></div>
+      <div class="settings-toggle" style="margin-top:10px">
+        <span>每小时自动同步</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="autoSyncToggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="btn-cancel" id="settingsCancel">取消</button>
       <button class="btn-save" id="settingsSave">保存</button>
@@ -343,8 +396,10 @@ def generate_html(all_groups: dict[str, dict[str, list[dict]]], output: str = "i
 
 <div class="dup-banner" id="dupBanner">
   <span id="dupText"></span>
+  <button id="dupDedup">一键去重</button>
   <button id="dupDismiss">忽略</button>
 </div>
+<input type="file" id="browserBookmarkFile" accept=".html,.htm,.json" style="display:none">
 """)
     # Toolbar + grid
     parts.append(f"""
@@ -388,6 +443,8 @@ const VISITS_KEY = 'markit-visits';
 const RECENT_KEY = 'markit-recent';
 const PINS_KEY = 'markit-pins';
 const READLATER_KEY = 'markit-readlater';
+const AUTOSYNC_KEY = 'markit-autosync';
+const LASTSYNC_KEY = 'markit-lastsync';
 
 const modeSwitcher = document.getElementById('modeSwitcher');
 const tagsEl = document.getElementById('tags');
@@ -841,8 +898,9 @@ function switchMode(mode) {
   }
 }
 modeSwitcher.addEventListener('click', e => {
-  if (!e.target.classList.contains('mode-btn')) return;
-  switchMode(e.target.dataset.mode);
+  const btn = e.target.closest('.mode-btn');
+  if (!btn) return;
+  switchMode(btn.dataset.mode);
 });
 searchInput.addEventListener('input', filter);
 document.addEventListener('keydown', e => {
@@ -1001,6 +1059,33 @@ document.getElementById('dupDismiss').addEventListener('click', () => {
   document.getElementById('dupBanner').classList.remove('show');
   gridEl.querySelectorAll('.dup-highlight').forEach(c => c.classList.remove('dup-highlight'));
 });
+document.getElementById('dupDedup').addEventListener('click', () => {
+  // Remove duplicate cards, keep the first occurrence of each URL
+  const seen = new Set();
+  const toRemove = [];
+  gridEl.querySelectorAll('.card').forEach(card => {
+    const url = card.getAttribute('data-url') || card.href;
+    if (!url) return;
+    if (seen.has(url)) { toRemove.push(card); } else { seen.add(url); }
+  });
+  // Also dedup in custom bookmarks
+  const customs = loadCustom();
+  const customSeen = new Set();
+  // Collect static URLs first
+  gridEl.querySelectorAll('.card:not(.custom)').forEach(c => {
+    customSeen.add(c.getAttribute('data-url') || c.href);
+  });
+  const dedupedCustoms = [];
+  customs.forEach(bm => {
+    if (!customSeen.has(bm.url)) { dedupedCustoms.push(bm); customSeen.add(bm.url); }
+  });
+  saveCustom(dedupedCustoms);
+  toRemove.forEach(c => c.remove());
+  renderCustomCards(); addStaticCardActions(); buildTags(); filter(); updateVisitCounts();
+  document.getElementById('dupBanner').classList.remove('show');
+  gridEl.querySelectorAll('.dup-highlight').forEach(c => c.classList.remove('dup-highlight'));
+  checkDuplicates();
+});
 
 // ---- settings ----
 const settingsBtn = document.getElementById('settingsBtn');
@@ -1119,6 +1204,148 @@ gridEl.addEventListener('drop', e => {
 });
 gridEl.addEventListener('dragend', () => {
   if (dragCard) { dragCard.style.opacity = '1'; dragCard = null; }
+});
+
+// ---- clock ----
+function updateClock() {
+  const now = new Date();
+  const timeEl = document.getElementById('clockTime');
+  const dateEl = document.getElementById('clockDate');
+  if (timeEl) timeEl.textContent = now.toLocaleTimeString('zh-CN', { hour12: false });
+  if (dateEl) {
+    const m = now.getMonth() + 1;
+    const d = now.getDate();
+    const weekdays = ['日','一','二','三','四','五','六'];
+    dateEl.textContent = m + '月' + d + '日 周' + weekdays[now.getDay()];
+  }
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// ---- browser bookmark loading ----
+const settingsLoadBrowserBtn = document.getElementById('settingsLoadBrowserBtn');
+const browserBookmarkFile = document.getElementById('browserBookmarkFile');
+const autoSyncToggle = document.getElementById('autoSyncToggle');
+const syncStatusEl = document.getElementById('syncStatus');
+
+function parseBrowserBookmarkHtml(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const results = [];
+  doc.querySelectorAll('a').forEach(a => {
+    const url = a.getAttribute('href');
+    const title = a.textContent.trim();
+    if (url && /^https?:/.test(url)) {
+      let folder = '浏览器导入';
+      const dl = a.closest('dl');
+      if (dl && dl.previousElementSibling && dl.previousElementSibling.tagName === 'H3') {
+        folder = dl.previousElementSibling.textContent.trim();
+      }
+      results.push({ title: title || url, url, folder });
+    }
+  });
+  return results;
+}
+
+function mergeBrowserBookmarks(newBookmarks) {
+  const customs = loadCustom();
+  const existingUrls = new Set(customs.map(b => b.url));
+  gridEl.querySelectorAll('.card:not(.custom)').forEach(c => {
+    existingUrls.add(c.getAttribute('data-url') || c.href);
+  });
+  let added = 0;
+  newBookmarks.forEach(bm => {
+    if (bm.url && !existingUrls.has(bm.url)) {
+      customs.push({
+        title: bm.title, url: bm.url,
+        category: classifyUrl(bm.url),
+        folder: bm.folder || '浏览器导入',
+        browser: '浏览器导入'
+      });
+      existingUrls.add(bm.url);
+      added++;
+    }
+  });
+  saveCustom(customs);
+  renderCustomCards(); addStaticCardActions(); buildTags(); sortCards(); filter(); updateVisitCounts();
+  localStorage.setItem(LASTSYNC_KEY, new Date().toISOString());
+  updateSyncStatus();
+  return added;
+}
+
+function loadViaChromeApi() {
+  return new Promise((resolve, reject) => {
+    if (typeof chrome !== 'undefined' && chrome.bookmarks && chrome.bookmarks.getTree) {
+      chrome.bookmarks.getTree(tree => {
+        const results = [];
+        function walk(nodes, folder) {
+          for (const node of nodes) {
+            if (node.url && /^https?:/.test(node.url)) results.push({ title: node.title || node.url, url: node.url, folder });
+            if (node.children) walk(node.children, node.title || folder);
+          }
+        }
+        walk(tree, '浏览器导入');
+        resolve(results);
+      });
+    } else { reject(new Error('no-api')); }
+  });
+}
+
+function updateSyncStatus() {
+  const last = localStorage.getItem(LASTSYNC_KEY);
+  if (syncStatusEl) {
+    syncStatusEl.textContent = last ? '上次同步: ' + new Date(last).toLocaleString('zh-CN') : '尚未同步';
+  }
+}
+updateSyncStatus();
+
+function triggerBrowserLoad() {
+  loadViaChromeApi().then(bookmarks => {
+    const added = mergeBrowserBookmarks(bookmarks);
+    alert('通过浏览器 API 同步完成，新增 ' + added + ' 个书签');
+  }).catch(() => {
+    browserBookmarkFile.click();
+  });
+}
+
+settingsLoadBrowserBtn.addEventListener('click', triggerBrowserLoad);
+
+browserBookmarkFile.addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      let bookmarks;
+      if (file.name.endsWith('.json')) {
+        const data = JSON.parse(reader.result);
+        bookmarks = Array.isArray(data) ? data : [];
+      } else {
+        bookmarks = parseBrowserBookmarkHtml(reader.result);
+      }
+      const added = mergeBrowserBookmarks(bookmarks);
+      alert('导入完成，新增 ' + added + ' 个书签');
+    } catch (err) { alert('导入失败: ' + err.message); }
+  };
+  reader.readAsText(file);
+  browserBookmarkFile.value = '';
+});
+
+// ---- auto sync ----
+autoSyncToggle.checked = localStorage.getItem(AUTOSYNC_KEY) === 'true';
+let syncInterval = null;
+function startAutoSync() {
+  if (syncInterval) clearInterval(syncInterval);
+  syncInterval = setInterval(() => {
+    loadViaChromeApi().then(bookmarks => {
+      mergeBrowserBookmarks(bookmarks);
+    }).catch(() => {});
+  }, 3600000);
+}
+if (autoSyncToggle.checked) startAutoSync();
+autoSyncToggle.addEventListener('change', () => {
+  localStorage.setItem(AUTOSYNC_KEY, autoSyncToggle.checked ? 'true' : 'false');
+  if (autoSyncToggle.checked) startAutoSync();
+  else if (syncInterval) { clearInterval(syncInterval); syncInterval = null; }
 });
 
 // ---- init ----

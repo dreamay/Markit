@@ -1,5 +1,6 @@
 # 生成产物
 index.html
+markit_app/
 
 # Python
 __pycache__/
